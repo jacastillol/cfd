@@ -1,34 +1,28 @@
-module parametros
-  real*8 :: dx, k1, k2  
-end module parametros
-
 program tarea01
-  use parametros
+  use parametros, only: pi, dim, k1, k2, dx, Long
   use diferencias_finitas
   implicit none
   integer :: i, j, ii
   integer, parameter :: szi=3
   integer, parameter, dimension(szi) :: scl = (/ 1, 2, 5 /)
-  real*8, parameter :: pi = acos(-1.0D0)
-  integer :: dim
-  real*8, dimension(:), allocatable :: x, f, df, d2f
-  real*8, dimension(:), allocatable :: df_2, df_4, df_6
-  real*8, dimension(:), allocatable :: d2f_2, d2f_4, d2f_6
-  ! real*8, dimension(:,:), allocatable :: A
-  real*8, dimension(1:3) :: K_2
-  real*8, dimension(1,3) :: Kb_2
-  real*8, dimension(1:5) :: K_4
-  real*8, dimension(2,5) :: Kb_4
-  real*8, dimension(1:7) :: K_6
-  real*8, dimension(3,7) :: Kb_6
-  real*8 :: err_df_2 = 0.0D0, err_df_4 = 0.0D0, err_df_6 = 0.0D0
-  real*8 :: err_d2f_2 = 0.0D0, err_d2f_4 = 0.0D0, err_d2f_6 = 0.0D0
+  real(Long), dimension(:), allocatable :: x, f, df, d2f
+  real(Long), dimension(:), allocatable :: df_2, df_4, df_6
+  real(Long), dimension(:), allocatable :: d2f_2, d2f_4, d2f_6
+  real(Long), dimension(1:3) :: K_2
+  real(Long), dimension(1,3) :: Kb_2
+  real(Long), dimension(1:5) :: K_4
+  real(Long), dimension(2,5) :: Kb_4
+  real(Long), dimension(1:7) :: K_6
+  real(Long), dimension(3,7) :: Kb_6
+  real(Long) :: err_df_2 = 0.0_Long, err_df_4 = 0.0_Long, err_df_6 = 0.0_Long
+  real(Long) :: err_d2f_2 = 0.0_Long, err_d2f_4 = 0.0_Long, err_d2f_6 = 0.0_Long
 
   do i=1,6
      do ii = 1,szi
         dim = scl(ii)*10**i+1
-        dx = 2.0*pi/(dim-1); k1 = 0.5*pi/1.0; k2 = 0.75*k1
-
+        dx = 2.0*pi/(dim-1);
+        k1 = 0.5*pi/1.0; k2 = 0.75*k1
+        
         allocate( x(dim) )
         allocate( f(dim) )
         allocate( df(dim) )
@@ -41,13 +35,10 @@ program tarea01
         allocate( d2f_2(dim) )
         allocate( d2f_4(dim) )
         allocate( d2f_6(dim) )
-        ! allocate( A(dim,dim) )
 
-        ! A = 0.0D0
-
-        df_2 = 0.0D0; df_4 = 0.0D0; df_6 = 0.0D0
-        d2f_2 = 0.0D0; d2f_4 = 0.0D0; d2f_6 = 0.0D0
-
+        df_2 = 0.0_Long; df_4 = 0.0_Long; df_6 = 0.0_Long
+        d2f_2 = 0.0_Long; d2f_4 = 0.0_Long; d2f_6 = 0.0_Long
+        
         call get_Kernel(Kb_2(1,:), 3, 0, dx)
         call get_Kernel(K_2, 3, -1, dx)
 
@@ -69,9 +60,6 @@ program tarea01
         call convolution(f,dim,K_2,3,Kb_2,3,1,df_2)
         call convolution(f,dim,K_4,5,Kb_4,5,2,df_4)
         call convolution(f,dim,K_6,7,Kb_6,7,3,df_6)
-        ! call diff_matrix(f,A,dim,K_2,3,Kb_2,3,1,df_2)
-        ! call diff_matrix(f,A,dim,K_4,5,Kb_4,5,2,df_4)
-        ! call diff_matrix(f,A,dim,K_6,7,Kb_6,7,3,df_6)
         call convolution(df_2,dim,K_2,3,Kb_2,3,1,d2f_2)
         call convolution(df_4,dim,K_4,5,Kb_4,5,2,d2f_4)
         call convolution(df_6,dim,K_6,7,Kb_6,7,3,d2f_6)
@@ -87,7 +75,7 @@ program tarea01
              maxval( (/ (abs(df((dim-1)*i/10)-df_2((dim-1)*i/10)), i=3,7) /) ), &
              maxval( (/ (abs(df((dim-1)*i/10)-df_4((dim-1)*i/10)), i=3,7) /) ), &
              maxval( (/ (abs(df((dim-1)*i/10)-df_6((dim-1)*i/10)), i=3,7) /) ), &
-             err_d2f_2, err_d2f_4, err_df_6, &
+             err_d2f_2, err_d2f_4, err_d2f_6, &
              maxval( (/ (abs(d2f((dim-1)*i/10)-d2f_2((dim-1)*i/10)), i=3,7) /) ), &
              maxval( (/ (abs(d2f((dim-1)*i/10)-d2f_4((dim-1)*i/10)), i=3,7) /) ), &
              maxval( (/ (abs(d2f((dim-1)*i/10)-d2f_6((dim-1)*i/10)), i=3,7) /) )
@@ -104,7 +92,6 @@ program tarea01
         if (allocated(d2f_2)) deallocate( d2f_2 )
         if (allocated(d2f_4)) deallocate( d2f_4 )
         if (allocated(d2f_6)) deallocate( d2f_6 )
-        ! if (allocated(A)) deallocate( A )
      end do
   end do
 
@@ -112,22 +99,22 @@ contains
 
   function f_fcn(x)
     use parametros, only: k1, k2
-    real*8 :: x
-    real*8 :: f_fcn
+    real(Long) :: x
+    real(Long) :: f_fcn
     f_fcn = exp(sin(x)) + 0.5*cos(k1*x) - 0.8*sin(k2*x)
   end function f_fcn
   
   function df_fcn(x)
     use parametros, only: k1, k2
-    real*8 :: x
-    real*8 :: df_fcn
+    real(Long) :: x
+    real(Long) :: df_fcn
     df_fcn = cos(x)*exp(sin(x)) - 0.5*k1*sin(k1*x) - 0.8*k2*cos(k2*x)
   end function df_fcn
   
   function d2f_fcn(x)
     use parametros, only: k1, k2
-    real*8 :: x
-    real*8 :: d2f_fcn
+    real(Long) :: x
+    real(Long) :: d2f_fcn
     d2f_fcn = (cos(x)**2-sin(x))*exp(sin(x)) - 0.5*k1**2*cos(k1*x) + 0.8*k2**2*sin(k2*x)
   end function d2f_fcn
   

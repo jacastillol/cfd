@@ -1,10 +1,11 @@
 module diferencias_finitas
 contains
   subroutine get_Kernel(Kernel, order, shift, dx)
+    use parametros, only: Long
     implicit none
     integer, intent(in) :: order, shift
-    real*8, intent(in) :: dx
-    real*8, dimension(:), intent(out) :: Kernel
+    real(Long), intent(in) :: dx
+    real(Long), dimension(:), intent(out) :: Kernel
     integer :: j, delta, info
     integer, dimension(order) :: pivs
     real*8, dimension(order,order) :: A
@@ -14,12 +15,12 @@ contains
     b = 0.0D0; b(2) = 1.0D0
     do delta=shift,order+shift-1
        do j=0,order-1
-          A(j+1,delta-shift+1) = (real(delta)**j/factorial(j))*dx
+          A(j+1,delta-shift+1) = real((real(delta,Long)**j/factorial(j))*dx,8)
        end do
     end do
     !    dgesv(N,NRHS,A,LDA,IPIV,b,LDB,info)
     call dgesv(order, 1, A, order, pivs, b, order, info)
-    Kernel = b
+    Kernel = real(b,Long)
 
   contains
     function factorial(n)
@@ -34,12 +35,13 @@ contains
   end subroutine get_Kernel
 
   subroutine convolution(fun,dim,K_domain,Kd_cols,K_boundary,Kb_cols,Kb_rows,dfun)
+    use parametros, only: Long
     implicit none
     integer, intent(in) :: dim, Kd_cols, Kb_cols, Kb_rows
-    real*8, dimension(:), intent(in) :: fun
-    real*8, dimension(:), intent(in) :: K_domain
-    real*8, dimension(:,:), intent(in) :: K_boundary
-    real*8, dimension(:), intent(out) :: dfun
+    real(Long), dimension(:), intent(in) :: fun
+    real(Long), dimension(:), intent(in) :: K_domain
+    real(Long), dimension(:,:), intent(in) :: K_boundary
+    real(Long), dimension(:), intent(out) :: dfun
     integer :: i, j
     ! left boundary
     do i=1,Kb_rows
@@ -61,64 +63,16 @@ contains
     end do
   end subroutine convolution
 
-  subroutine error_fds(fun,dfun,dim,K_domain,Kd_cols,K_boundary,Kb_cols,Kb_rows)
-    implicit none
-    integer, intent(in) :: dim, Kd_cols, Kb_cols, Kb_rows
-    real*8, dimension(:), intent(in) :: K_domain
-    real*8, dimension(:,:), intent(in) :: K_boundary
-    real*8 :: fun_i, dfun_i
-    real*8 :: err_i, err_max = -1, err_b_max = -1
-    integer :: i, j
-
-    interface AFunc
-       function fun (x)
-         real*8 :: fun
-         real*8 :: x
-       end function fun
-       function dfun (x)
-         real*8 :: dfun
-         real*8 :: x
-       end function dfun
-    end interface AFunc
-
-    ! left boundary
-    do i=1,Kb_rows
-       dfun_i = 0
-       do j=1,Kb_cols
-          dfun_i = dfun_i + K_boundary(i,j)*fun(dx*j)
-       end do
-       err_i = abs(dfun(dx*i)-dfun_i)
-       if ( err_b_max < err_i ) err_b_max=err_i
-    end do
-    ! domain
-    do i=Kb_rows+1,dim-Kb_rows
-       dfun_i = 0
-       do j=1,Kd_cols
-          dfun_i = dfun_i + K_domain(j)*fun(dx*(i-((Kd_cols-1)/2)-1+j))
-       end do
-       err_i = abs(dfun(dx*i)-dfun_i)
-       if ( err_max < err_i ) err_max=err_i
-    end do
-    ! right boundary
-    do i=dim-Kb_rows+1,dim
-       dfun_i = 0
-       do j=1,Kb_cols
-          dfun_i = dfun_i - K_boundary(dim-i+1,Kb_cols-j+1)*fun(dx*(dim-Kb_cols+j))
-       end do
-       err_i = abs(dfun(dx*i)-dfun_i)
-       if ( err_b_max < err_i ) err_b_max=err_i
-    end do
-  end subroutine error_fds
-
   subroutine diff_matrix(fun,A,dim,K_domain,Kd_cols,K_boundary,Kb_cols,Kb_rows,dfun)
+    use parametros, only: Long
     implicit none
     integer, intent(in) :: dim, Kd_cols, Kb_cols, Kb_rows
-    real*8, dimension(:), intent(in) :: fun
-    real*8, dimension(:), intent(in) :: K_domain
-    real*8, dimension(:,:), intent(in) :: K_boundary
-    real*8, dimension(:), intent(out) :: dfun
+    real(Long), dimension(:), intent(in) :: fun
+    real(Long), dimension(:), intent(in) :: K_domain
+    real(Long), dimension(:,:), intent(in) :: K_boundary
+    real(Long), dimension(:), intent(out) :: dfun
     integer :: i, j
-    real*8, dimension(:,:), intent(inout) :: A
+    real(Long), dimension(:,:), intent(inout) :: A
 
     ! left boundary
     do i=1,Kb_rows
@@ -139,11 +93,90 @@ contains
        end do
     end do
 
-    write(*,'(11(f6.2,x))') A
-    write(*,'(11(f9.5,x))') matmul(A,fun)
+    dfun = matmul(A,fun)
+    !write(*,'(11(f9.5,x))') matmul(A,fun)
     !  DGEMM  ('N','N',  M,  N,  K, ALPHA, A,  M, B,  K,  BETA,   C,  M)
-    !call dgemm('N','N',dim,  1,dim, 1.0D0, A,dim, f,dim, 0.0D0, df_,dim)
-    ! write(*,'(11(f6.2,x))') y
+    !call dgemm('N','N',dim,  1,dim, 1.0_Long, A,dim, f,dim, 0.0_Long, df_,dim)
   end subroutine diff_matrix
+
+  subroutine conv_difu_1D_uniform(phi,dim,K_stencil,phi0,phiL)
+    use parametros, only: Long
+    implicit none
+    integer, intent(in) :: dim
+    real(Long), dimension(3), intent(in) :: K_stencil
+    real(Long), dimension(dim), intent(out) :: phi
+    real(Long), dimension(dim-2) :: D
+    real(Long), dimension(dim-3) :: DL, DU
+    real(Long) :: phi0, phiL
+    integer :: info
+
+    ! boudaries
+    phi(1) = phi0
+    phi(2) = -K_stencil(1)*phi0
+    phi(dim-1) = -K_stencil(3)*phiL
+    phi(dim) = phiL
+
+    ! domain
+    DL = K_stencil(1)
+    D = K_stencil(2)
+    DU = K_stencil(3)
+
+    !    dgtsv(N,NRHS,DL,D,DU,b,LDB,info)
+    call dgtsv(dim-2, 1, DL, D, DU, phi(2:dim-1), dim-2, info)
+
+  end subroutine conv_difu_1D_uniform
+
+  subroutine conv_difu_1D_non_uniform(x,phi,dim,K_fun,phi0,phiL,rho,u,Gamma)
+    use parametros, only: Long        
+    implicit none
+    integer, intent(in) :: dim
+    real(Long), dimension(dim), intent(in) :: x
+    real(Long), dimension(dim), intent(out) :: phi
+    real(Long), dimension(3):: K_stencil
+    real(Long), dimension(dim-2) :: D
+    real(Long), dimension(dim-3) :: DL, DU
+    real(Long), intent(in) :: rho, u, Gamma
+    real(Long) :: phi0, phiL
+    integer :: i, info
+
+    interface K_fcns
+       function K_fun(i,x,Gamma,rho,u)
+         use parametros
+         implicit none
+         integer :: i
+         real(Long), dimension(:) :: x
+         real(Long) :: Gamma, rho, u
+         real(Long), dimension(3) :: K_fun
+       end function K_fun
+    end interface K_fcns
+
+    ! boudaries
+    ! x=0
+    i = 2;
+    K_stencil = K_fun(i,x,Gamma,rho,u)
+    phi(1) = phi0
+    phi(2) = -K_stencil(1)*phi0
+    D(i-1) = K_stencil(2)
+    DU(i-1) = K_stencil(3)
+    ! x=L
+    i = dim-1
+    K_stencil = K_fun(i,x,Gamma,rho,u)
+    DL(i-2) = K_stencil(1)
+    D(i-1) = K_stencil(2)
+    phi(dim-1) = -K_stencil(3)*phiL
+    phi(dim) = phiL
+    
+    ! domain
+    do i=3,dim-2
+       K_stencil = K_fun(i,x,Gamma,rho,u)
+       DL(i-2) = K_stencil(1)
+       D(i-1) = K_stencil(2)
+       DU(i-1) = K_stencil(3)        
+    end do
+    
+    !    dgtsv(N,NRHS,DL,D,DU,b,LDB,info)
+    call dgtsv(dim-2, 1, DL, D, DU, phi(2:dim-1), dim-2, info)
+
+  end subroutine conv_difu_1D_non_uniform
 
 end module diferencias_finitas
