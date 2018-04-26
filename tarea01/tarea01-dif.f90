@@ -15,9 +15,9 @@ program diferencias
   real(Long) :: err_b_df_2 = 0.0_Long, err_b_df_4 = 0.0_Long, err_b_df_6 = 0.0_Long
   real(Long) :: err_d2f_2 = 0.0_Long, err_d2f_4 = 0.0_Long, err_d2f_6 = 0.0_Long
   real(Long) :: err_b_d2f_2 = 0.0_Long, err_b_d2f_4 = 0.0_Long, err_b_d2f_6 = 0.0_Long
-  real(Long) :: dx_max = 1.0_Long
+  real(Long) :: dx_max = 0.1_Long
   
-  do i=7,8
+  do i=1,5
      do j=1,szi
         dim = scl(j)*10**i+1
         dx = 2.0_Long*pi/(dim-1);
