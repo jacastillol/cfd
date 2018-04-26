@@ -1,34 +1,417 @@
-\documentclass[9pt,technote,twoside,letterpaper,twocolumn]{IEEEtran}
+%\documentclass[9pt,technote,twoside,letterpaper,twocolumn]{IEEEtran}
+\documentclass[9pt,technote,twoside,letterpaper,onecolumn]{IEEEtran}
 
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{multicol} % figure}[!hbt] by figure*}[!hbt]
+\usepackage{float}
+\usepackage{listings}
+\lstset{language=[90]Fortran,
+  numbers=left,
+  numberstyle=\tiny,%frame=double,framexleftmargin=15pt,
+  basicstyle=\scriptsize\ttfamily,
+  keywordstyle=\color{blue},
+  keywordstyle=[2]{\color{red!70!black}},
+  commentstyle=\color{green!70!black},
+  morecomment=[l]{!\ },% Comment only with space after !
+  otherkeywords={;,::,&},
+  morekeywords=[2]{&},
+}
 
-\title{Introducción a las Diferencias Finitas}
+\title{Introducción a las Diferencias Finitas aplicadas a CFD}
 \author{Jaime~Andrés~Castillo-León}
 
 \begin{document}
+
+\begin{multicols}{2}
 \maketitle
+%\begin{abstract}
+%  Bla, bla....
+%\end{abstract}
+
+%\begin{IEEEkeywords}
+%  Bla, bla....
+%\end{IEEEkeywords}
+
+%\section{Introducción}
+%\label{sec:intro}
 
 \section{Exactitud de esquemas de diferencias finitas}
 \label{sec:exac}
-En el siguiente ejemplo se aproxima la primera y segunda derivada de una función $f(x)$ analitica conocida.
+En el siguiente problema, se desea aproximar la primera y segunda derivada de una función analitica $f(x)$,  definida como:
 \begin{equation}
   f(x)\,=\,\exp(\sin(x))\,+\,0.5\cos(\kappa_1x)\,-\,0.8\sin(\kappa_2x)
   \label{eq:fun}
 \end{equation}
+en donde $x\in[-\pi,\pi]$, $\kappa_1 = \frac{\pi}{2\Delta x_{max}}$, $\kappa_2 = \frac{3\kappa_1}{4}$ y $\Delta x_{max}=0.1$ corresponde al tamaño de malla más pequeño de este experimento.
 
+La primera derivada, de forma analítica es:
 \begin{align}
   \frac{df}{dx}\,&=\,\cos(x)\exp(\sin(x))\notag\\
 &\quad-\,0.5\kappa_1\sin(\kappa_1x)\,-\,0.8\kappa_2\cos(\kappa_2x)
   \label{eq:dfun}
 \end{align}
-
+y la segunda derivada es:
 \begin{align}
   \frac{d^2f}{dx^2}\,&=\,(\cos^2(x)-\,\sin(x))\exp(\sin(x))\notag\\
 &\quad-\,0.5\kappa^2_1\cos(\kappa_1x)\,+\,0.8\kappa^2_2\sin(\kappa_2x)
   \label{eq:d2fun}
 \end{align}
+
+En la figura Fig.\ref{fig:funx}, se puede apreciar como la función $f(x)$, presenta altos valores en la primera y la segunda derivada. Esta característica será analizada más adelante como una influencia importante en el error del estencil.
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{001Funcion.png}\\
+  \label{fig:funx}
+  \caption{Funcion de prueba para aproximar las primeras dos derivadas utilizando esquemas de diferencias finitas: (arriba) $f(x;\kappa_1,\kappa_2,\Delta_x)$, (centro) $\frac{df}{dx}$, (abajo) $\frac{d^2f}{dx^2}$}
+\end{figure}
+
+\subsection{Aproximación de las derivadas de $f(x)$}
+\label{sec:aproxDFM}
+
+% TODO: Enumerate
+A continuación se presenta la deducción general de un esquema de diferencias finitas. En primer lugar se expresa la función $f(x)$ como una serie de Taylor alrededor de punto $x_i$, como $f(x)\,=\,\sum^\infty_{n=0}\,\frac{(x-x_i)^n}{n!}f^{(n)}(x_i)$. 
+
+De forma similar se puede expresar la derivada de $f(x)$, es decir $\frac{df}{dx}$, como $f^{(1)}(x)\,=\,\sum^\infty_{n=0}\,\frac{(x-xi)^n}{n!}f^{(n+1)}(x_i)$.
+
+Suponiendo que se tiene una malla uniforme, $\Delta\,=\,(x_{i+1}-x_i)$, se puede aproximar $f_{i+k}\,=\,f(x_{i+k})\,=\,f(k\Delta+x_i)$, en un punto $x_{i+k}$ vecino a $x_i$, como
+\begin{equation}
+  f_{i+k}\,=\,\sum^\infty_{n=0}\,\frac{(k\Delta)^n}{n!}f^{(n)}_i
+  \label{eq:xi+k}
+\end{equation}
+
+Para diseñar un esquema de la primera derivada $f^{(1)}(x_i)$ de tamaño $m-l$, es decir $f^{(1)}_i\,=\,a_lf_{i+l}+a_{l+1}f_{i+l+1}+\cdots+a_mf_{i+m}$, en donde $m,l\in\mathbb{Z}$, se plantea que la suma de series de Taylor de los puntos involucrados en el esquema deseado:
+\begin{equation}
+  \sum^m_{k=l}\,a_kf_{i+k}\,=\,\sum^m_{k=l}\sum^\infty_{n=0}\,a_k\frac{(k\Delta)^n}{n!}f^{(n)}_i
+  \label{eq:sysScheme}
+\end{equation}
+truncando la serie de Taylor ec.(\ref{eq:sysScheme}), es posible plantear el siguiente conjunto de ecuaciones, una ecuación para cada derivada de orden $n$ de la función $f(x)$:
+\begin{equation}
+  f^{(n)}_{i}:\qquad \sum^m_{k=l}\,a_k\frac{(k\Delta)^n}{n!}\,=\,c_n
+  \label{eq:sysSet}
+\end{equation}
+en donde $n$ es un conjunto de $m+l$ numeros naturales que incluyen al cero. 
+
+Los valores de $c_n$ se tomarán como únicamente dos posibles valores $\{0.0,1.0\}$ y significan: primero, si $c_n=0$ es como si el error de la serie de Taylor del esquema deseado en la derivada $f^{(n)}$ es cero y segundo, si $c_n=1.0$ entonces el error de orden $n$ no es nulo. Para obtener la derivada de orden $1$, se debe poner $c_1=1.0$.  
+
+\subsection{Diseño del Stencil}
+\label{sec:design}
+
+Es posible reescribir la ecuación ec.(\ref{eq:sysSet}), como un sistema matricial de la siguiente forma
+\begin{equation}
+  \left[\frac{(k\Delta)^n}{n!}\right]_{nk}\cdot\left(a_k\right)\,=\,\left(c_n\right)
+  \label{eq:designStencil}
+\end{equation}
+
+En el caso de diseños compactos es posible llegar al siguiente sistema:
+\begin{equation}
+  \left[\frac{(k\Delta)^n}{n!}\,,\,\frac{(p\Delta)^{n-1}}{n!}\right]_{nk}\cdot\left(
+  \begin{array}{c}
+a_k\\
+b_p
+  \end{array}
+\right)\,=\,\left(c_n\right)
+  \label{eq:designCompactStencil}
+\end{equation}
+
+\subsubsection{Diferencias Centradas de $4^{to}$ Orden}
+\label{sec:cds4}
+
+El estencil plantea el siguiente sistema, según la ec.(\ref{eq:designStencil}):
+{\small
+\begin{equation}
+  \left[\begin{matrix}
+      1 & 1 & 1 & 1 & 1\\
+      -2 & -1 & 0 & 1 & 2\\
+      2 & \frac{1}{2} & 0 & \frac{1}{2} & 2\\
+      - \frac{4}{3} & - \frac{1}{6} & 0 & \frac{1}{6} & \frac{4}{3}\\
+      \frac{2}{3} & \frac{1}{24} & 0 & \frac{1}{24} & \frac{2}{3}
+    \end{matrix}\right]
+  \cdot \mathbf{a}\,=\,
+  \left[\begin{matrix}
+      0\\
+      1\\
+      0\\
+      0\\
+      0
+    \end{matrix}\right]
+  \label{eq:cds4}
+\end{equation}
+}
+se obtiene 
+\begin{equation}
+  \Delta f^{(1)}_i\,=\,\frac{1}{12}f_{i-2}-\frac{2}{3}f_{i-1}+\frac{2}{3}f_{i+1}-\frac{1}{12}f_{i+2}
+  \label{eq:cds4stencil}
+\end{equation}
+de forma similar se puede obtener para las fronteras estenciles hacia adelante de orden 4:
+{\small
+\begin{equation}
+  \left[\begin{matrix}
+      1 & 1 & 1 & 1 & 1\\
+      -1 & 0 & 1 & 2 & 3\\
+      \frac{1}{2} & 0 & \frac{1}{2} & 2 & \frac{9}{2}\\
+      - \frac{1}{6} & 0 & \frac{1}{6} & \frac{4}{3} & \frac{9}{2}\\
+      \frac{1}{24} & 0 & \frac{1}{24} & \frac{2}{3} & \frac{27}{8}
+    \end{matrix}\right]  
+  \cdot \mathbf{a}\,=\,
+  \left[\begin{matrix}
+      0\\
+      1\\
+      0\\
+      0\\
+      0
+    \end{matrix}\right]
+  \label{eq:cds4-bound}
+\end{equation}}
+se obtiene 
+\begin{equation} % [-5/6], [3/2], [-1/4], [-1/2], [1/12] % 0,1,2,3,5
+  \Delta f^{(1)}_i\,=\,-\frac{1}{4}f_{i-1}-\frac{5}{6}f_{i}-\frac{3}{2}f_{i+1}-\frac{1}{2}f_{i+2}+\frac{1}{12}f_{i+3}
+  \label{eq:cds4stencilbound}
+\end{equation}
+
+Para implementar unas diferencias finitas de cuarto orden, incluidas las fronteras se tiene:
+\begin{align} % [-25/12], [4], [-3], [4/3], [-1/4]
+  \Delta f^{(1)}_i\,&=\,-\frac{25}{12}f_{i}+4f_{i+1}-3f_{i+2}+\frac{4}{3}f_{i+3}-\frac{1}{4}f_{i+4}\notag\\
+  \Delta f^{(1)}_i\,&=\,-\frac{1}{4}f_{i-1}-\frac{5}{6}f_{i}+\frac{3}{2}f_{i+1}-\frac{1}{2}f_{i+2}+\frac{1}{12}f_{i+3}\notag\\
+  \Delta f^{(1)}_i\,&=\,\frac{1}{12}f_{i-2}-\frac{2}{3}f_{i-1}+\frac{2}{3}f_{i+1}-\frac{1}{12}f_{i+2}\\
+  \Delta f^{(1)}_i\,&=\,-\frac{1}{12}f_{i-3}+\frac{1}{2}f_{i-2}-\frac{3}{2}f_{i-1}+\frac{5}{6}f_{i}+\frac{1}{4}f_{i+1}\notag\\
+  \Delta f^{(1)}_i\,&=\,+\frac{1}{4}f_{i-4}-\frac{4}{3}f_{i-3}-4f_{i-1}-3f_{i-2}+\frac{25}{12}f_{i}\notag
+\end{align}
+
+\subsubsection{Diferencias Centradas de $2^{do}$ Orden}
+\label{sec:cds2}
+\begin{align} % [-25/12], [4], [-3], [4/3], [-1/4]
+  \Delta f^{(1)}_i\,&=\,-\frac{3}{2}f_{i}+2f_{i+1}-\frac{1}{2}f_{i+2}\notag\\
+  \Delta f^{(1)}_i\,&=\,-\frac{1}{2}f_{i-1}+\frac{1}{2}f_{i+1}\\
+  \Delta f^{(1)}_i\,&=\,+\frac{1}{2}f_{i-2}-2f_{i-1}+\frac{3}{2}f_{i}\notag
+\end{align}
+
+\subsubsection{Diferencias Centradas de $6^{to}$ Orden}
+\label{sec:cds6}
+
+\begin{center}\scriptsize
+\begin{tabular}{ |c|c|c|c|c|c|c|c| } 
+  \hline
+  k & \scalebox{.8}{$f_{i-3+k}$} & \scalebox{.8}{$f_{i-2+k}$} & \scalebox{.8}{$f_{i-1+k}$} & \scalebox{.8}{$f_{i+k}$} & \scalebox{.8}{$f_{i+1+k}$} & \scalebox{.8}{$f_{i+2+k}$} & \scalebox{.8}{$f_{i+3+k}$} \\
+  \hline 
+  -3&-49/20&6&-15/2&20/3&-15/4&6/5&-1/60\\ % [-49/20], [6], [-15/2], [20/3], [-15/4], [6/5], [-1/6] 
+  -2&-1/6&-77/60&5/2&-5/3&5/6&-1/4&1/30\\ % [-77/60], [5/2], [-1/6], [-5/3], [5/6], [-1/4], [1/30]
+  -1&1/30&-2/5&-7/12&4/3&-1/2&2/15&-1/60\\ % [-7/12], [4/3], [-2/5], [-1/2], [1/30], [2/15], [-1/60]
+  0&-1/60&3/20&-3/4&0&3/4&-3/20&1/60 \\ % [0], [3/4], [-3/4], [-3/20], [3/20], [1/60], [-1/60]
+  1&1/60&-2/15&1/2&-4/3&7/12&2/5&-1/30 \\
+  2&-1/30&1/4&-5/6&5/3&-5/2&77/60&1/6\\
+  3&1/60&-6/5&15/6&-20/3&15/2&-6&49/20\\
+  \hline
+\end{tabular}
+\end{center}
+
+\subsection{Acerca del error de truncamiento de los esquemas}
+\label{sec:error}
+A continuación se muestra el orden de exactitud o el error de truncamiento ocasionado por los esquemas de segundo, cuarto y sexto orden estudiados en el documento. Como se puede apreciar en la Figura.\ref{fig:errtrunc}, cuando el tamaño de la malla se reduce, efectivamente se reduce el error, pero antes debe pasar una zona, la cual no reduce el error. Esto es debido a que en esa zona la derivada de la función es mucho mayor que el el efecto de $\Delta$. 
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.40]{002Errores_df.png}
+  \caption{Efecto del tamaño de la malla para $f(x)$ con $\Delta x_{max}=0.1$ y las derivadas de la función en $\frac{df}{dx}$ (Observar recuadro de Zoom).}
+  \label{fig:errtrunc}
+\end{figure}
+
+Se puede afirmar que para $\Delta<4*10^{-3}$, el error se reduce sin importar el tiempo de esquema utilizado. Para valores de malla mayores a este valor, las mallas arrojaran valores errados. Es importante aclara que este tipo de comportamiento es exclusivo de la función de prueba $f(x)$, que como se dijo anteriormente tiene derivadas con valores elevados.
+ 
+Como es de esperarse, al reutilizar el esquema para obtener la segunda derivada, el cálculo de la segunda derivada acumula los errores de la primera derivada (Vease la Figura.\ref{fig:err2trunc}). Lo que requiere para una aproximación aceptable que $\Delta_{cds2}<10^{-4}$. Se puede notar que la velocidad con que cae el error de la segunda derivada es mucho menor que la velocidada con que cae el error de la primera derivada, en por lo menos dos ordenes de magnitud.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.40]{003Errores_d2f.png}
+  \caption{Efecto del tamaño de la malla $\Delta$ y las derivadas de la función en $\frac{d^2f}{dx^2}$ (Observar recuadro de Zoom).}
+  \label{fig:err2trunc}
+\end{figure}
+
+Para comporbar que el efecto de la derivada es intrínseco de la función $f(x)$, la función de la ecuación ec.(\ref{eq:fun}), se ha modificado utilizando un $\Delta x_{max}\,=\,1.0$, con lo cual las derivadas se reducen considerablemente. Al aplicar los esquemas de diferenciación a dicha funcion, se puede observar que cualquier $\Delta<0.1$ (ver Figura.\ref{fig:errdxOthertrunc}), disminuye el error, lo cual no ocurre para la funcion $f(x)$ original (ver Figura.\ref{fig:errtrunc}).
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.40]{004Errores_df_10dx.png}
+  \caption{Efecto de las derivadas de la función $f(x)$ con $\Delta x_{max}=1.0$ en $\frac{df}{dx}$.}
+  \label{fig:errdxOthertrunc}
+\end{figure}
+
+En la Figura.\ref{fig:errdxOthertrunc}, aparace un codo para la aproximación de sexto orden, en donde el error en lugar de disminuir comienza a crecer. Este efecto es debido al \emph{error de redondeo} que se debe a la precisión de la máquina y la forma como aproxima los números reales.
+
+\subsubsection{Error CDS 2, 4 y 6}
+\label{sec:errcds4}
+Lo explicado anteriormente se puede ver en las siguientes ecuaciones de orden de exactitud, en donde se evidencia el efecto del tamaño de malla y el valor particular de la funcion $f(x)$:
+\begin{align}
+  \epsilon_{cds2}(x)\,&=\,k_2\Delta_i^2\left.\frac{d^3f}{dx^3}\right|_{x_i}
+  \label{eq:errcds2}\\
+  \epsilon_{cds4}(x)\,&=\,k_4\Delta_i^4\left.\frac{d^5f}{dx^5}\right|_{x_i}
+  \label{eq:errcds4}\\
+  \epsilon_{cds6}(x)\,&=\,k_6\Delta_i^6\left.\frac{d^7f}{dx^7}\right|_{x_i}
+  \label{eq:errcds6}
+\end{align}
+donde $k_i$ es una constante, que se obtiene de aumentar una fila en la ec.(\ref{eq:designStencil}).
+
+\subsection{Implementación Diseño Stencils}
+\label{sec:imple}
+
+La implementación Listing.\ref{lst:label_stencil} muestra una función en Fortran 90, que crea cualquier esquema de Diferencias Finitas, propuesta por ec.(\ref{eq:designStencil}):
+\begin{center}
+\begin{lstlisting}[caption={Diseño de Stencils},label={lst:label_stencil}]
+! Crea el estencil de un esquema no-compacto
+subroutine get_Kernel(Kernel, ord, shift, dx)
+  implicit none
+  integer, intent(in) :: ord, shift
+  real*8, intent(in) :: dx
+  real*8, dimension(:), intent(out) :: Kernel
+  integer :: j, delta, info
+  integer, dimension(ord) :: pivs
+  real*8, dimension(ord,ord) :: A
+  real*8, dimension(ord) :: b
+  ! Ensamble del sistema
+  A = 0.0D0
+  b = 0.0D0; b(2) = 1.0D0
+  do delta=shift,order+shift-1
+    do j=0,order-1
+      A(j+1,delta-shift+1) = &
+          (real(delta)**j/factorial(j))*dx
+    end do
+  end do
+  ! Solucion
+  call dgesv(order, 1, A, ord, pivs, &
+             b, ord, info)
+  Kernel = b
+end subroutine get_Kernel
+\end{lstlisting}
+\end{center}
+
+\subsection{Acerca del error de redondeo}
+\label{sec:errorred}
+
+Continuando con el efecto del codo de la Figura.\ref{fig:errdxOthertrunc}, se implementó los algoritmo para que se pudiera explorar los errores de redondeo presentes en los tipos de dato de \emph{punto flotante} implementados en Fortran, mediante el estandar \emph{IEEE-754}. Esto son \verb.single., \verb.double. y \verb.quad. representados por la siguiente Listing.\ref{lst:types}. 
+\begin{lstlisting}[caption={Punto flotante},label={lst:types}]
+module parametros
+  implicit none
+  integer, parameter :: sp = & !float32
+      selected_real_kind(6, 37)
+  integer, parameter :: dp = & !float64
+      selected_real_kind(15, 307)
+  integer, parameter :: qp = & !float128
+      selected_real_kind(33, 4931)
+  integer, parameter :: Long = &
+      selected_real_kind(15, 307)
+end subroutine parametros
+\end{lstlisting}
+
+Cada tipo de dato maneja un nivel de redondeo de acuerdo a la cantidad de memoria y a la forma en que almacena las cantidades. Un número representado por punto flotante, es una aproximación finita de los números reales, no es posible representar la continuidad de la recta de los reales, asi que la distancia más pequeña entre dos numeros pequeños representa la precision del sistema flotante. Por ejemplo, la definición del epsilon de la máquina $\epsilon_{maq}$ es el número más pequeño que puede representar el numero flotante mayor a la unidad.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{005Regions.png}
+  \caption{Errores de truncamiento y redondeo de la función $f(x)$ con $\Delta x_{max}=1.0$ en $\frac{df}{dx}$ según el timpo de dato y el tamaño de malla.}
+  \label{fig:regions_dx10}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{005Regions_dx01.png}
+  \caption{Efecto de las derivadas de la función $f(x)$ con $\Delta x_{max}=0.1$ en $\frac{df}{dx}$.}
+  \label{fig:regions_dx01}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{006Regions_df2_dx01.png}
+  \caption{Efecto de las derivadas de la función $f(x)$ con $\Delta x_{max}=0.1$ en $\frac{d^2f}{dx^2}$.}
+  \label{fig:regions_d2fdx01}
+\end{figure}
+
+\subsection{Implementación de la primera y la segunda derivada}
+\label{sec:imp1rader}
+Es posible encontrar la primera y segunda derivadas de $f(x)$, mediante:
+\begin{equation}
+  f'(x)\,=\,\mathbf{D}\cdot f(x)
+  \label{eq:matdiff}  
+\end{equation}
+\begin{equation}
+  f''(x)\,=\,\mathbf{D}^2\cdot f(x)\,=\,\mathbf{D}\cdot f'(x)
+  \label{eq:matdiff2}  
+\end{equation}
+en donde $f$ y $x\in\mathbb{R}^{n}$, $n$ el número de nodos de la malla y $\mathbf{D}\in\mathbb{R}^{n\times n}$ es una matriz banda que se define por los esquemas de diferenicas finitas que se utilizan. Sin embargo la implementación de dicha ecuación requiere de ciertas bondades para poder evaluar el error de redondeo de la Figura.\ref{fig:regions_dx10}.  
+\subsubsection{Matriz Densa de diferenciación}
+\label{sec:imp_matrix}
+Implmenentar $\mathbf{D}$ como una matriz densa es la forma más sencilla, pero para $n=10^4$, se requiere 6.4GB de la memoria RAM utilizando precisión de \verb.double.. Lo cual comvierte este método en una forma inviable de analizar el error de redondeo, ya que la memoria del programa se llenaría antes de que se logre el error de redondeo. 
+\subsubsection{Matriz Banda basada en el estencil}
+\label{sec:imp_matrix_band}
+La matriz densa se puede cambiar por dos submatrices que representan los kernels en el contorno y el dominio. De esta forma el exceso de memoria de la matriz $\mathbf{D}$ queda resuelto, al tamaño de los estenciles. Sin embargo para encontrar la segunda derivada se requiere de $\mathbf{D}^2$ o de $f'(x)$, lo cual representa un requerimiento en memoria de 640MB para un arreglo de $f'\,\in\mathbb{R}^7$, lo cual convierte el problema en un problema en memoria nuevamente.
+\subsubsection{Convolución de la malla usando el tamaño del estencil}
+\label{sec:imp_conv}
+Por último en lugar de almacenar $f^{'}(x)$ en un arreglo total, se puede almacenar $f^{'}_{\Omega}$ solo en al vecindad del estencil para obtener la segunda derivada. De esta forma se puede calcular cualquier tamaño de malla, con la limitante de que ahora el problema es el tiempo de ejecución. En el caso de la malla de $5*10^8$, el tiempo de ejecución con un Core i7, en un solo núcleo fue de 380 minutos para una precisión de \verb.quad.. Como ventaja es posible correr el mismo programa siete veces uno por cada núcleo, dejando el tiempo total de computo en 4 horas y 20 minutos (es decir 380 minutos). El desempeño en tiempo se puede ver en la Figura.\ref{fig:performance}, en donde se puede calcular la complejidad exponencial en tiempo, como $\mathcal{O}(b\,n^a\,)$ y $N$ es el tamaño de la malla.
+
+\begin{figure}[H]
+  \includegraphics[scale=0.38]{007Performance.png}
+  \caption{Efecto de las derivadas de la función $f(x)$ con $\Delta x_{max}=0.1$ en $\frac{df}{dx}$.}
+  \label{fig:performance}
+  \centering
+\end{figure}
+
+Es posible calcular $a$ y $b$ concluyendo que $a<1$, para cualquiera de los casos de punto flotante.
+\begin{center}\scriptsize
+\begin{tabular}{ |c|c|c|c| } 
+  \hline
+  Params & valor & precision & std. err \\
+  \hline 
+  $a_s$& 0.935237&+/- 0.02513&2.687\%\\
+  $b_s$& 3.7883e-08&+/- 1.683e-08&44.43\%\\  \hline
+  $a_d$& 0.935706&+/- 0.01297&1.386\%\\
+  $b_d$& 7.25366e-08&+/- 1.881e-08&25.93\%\\  \hline
+  $a_q$& 0.840048&+/- 0.01265&1.506\%\\
+  $b_q$&1.8651e-05&+/- 4.701e-06&25.2\%\\
+  \hline
+\end{tabular}
+\end{center}
+
+Por ultimo la impementación de este caso, lleva a los siguientes pasos:
+\begin{align}
+  f^{'}_i\,&=\,K_r\cdot f_{\Omega_i}\label{eq:buffdiff}\\
+  f^{''}_i\,&=\,\sum_{k,j\in\Omega_{ij}}D_{ik}D_{kj} f_j\label{eq:optimDiff}
+\end{align}
+en donde $f_{\Omega_i}$ depende de los indices $\Omega_i$ del kernel $K_r\in\{K_b, K_d\}$, dependiendo de la ubicación del nodo sera $K_b$ para el esquma cercano al contorno o $K_d$ para nodos internos del dominio.
+
+% % \begin{figure}[!htb]
+% %   \includegraphics[scale=0.40]{02_001SolucionTeorica.png}
+% %   \centering
+% % \end{figure}
+% % \begin{figure}[!htb]
+% %   \includegraphics[scale=0.40]{02_002EfectosMalla.png}
+% %   \centering
+% % \end{figure}
+% % \begin{figure}[!htb]
+% %   \includegraphics[scale=0.40]{03_001Temporal.png}
+% %   \centering
+% % \end{figure}
+% % \begin{figure}[!htb]
+% %   \includegraphics[scale=0.40]{03_002Temporal.png}
+% %   \centering
+% % \end{figure}
+
+\section{Ecuación de difusión-convección 1D}
+\label{sec:dif-conv}
+
+\section{Ecuación de difusión-convección transitoria 1D}
+\label{sec:dif-conv-trans}
+
+%\section{Conclusiones}
+%\label{sec:conclusiones}
+
+%\section{Referencias}
+%\label{sec:refs}
+
+\end{multicols}
+
+\section{Anexos}
+\label{sec:anexos}
 
 Comenzando con las diferencias finitas de primer orden y la serie de Taylor que aproxima la función $f(x)$ al rededor del punto $x_i$, se tiene:
 
@@ -297,5 +680,105 @@ tales que
 %                         &\,=\,0 \notag 
   \end{align}
 }
+
+\subsubsection{Algoritmo de cálculo de error optimizado en espacio}
+\label{sec:opt_alg}
+
+El algoritmo de Listing.\ref{lst:opt_alg}, detalla la implementación utilizada el documento para la investigación del error de redondeo y truncamiento encontrado en los esquemas de direncias finitas.
+
+\begin{multicols}{2}
+\begin{lstlisting}[caption={Algoritmo del cálculo de las derivadas},label={lst:opt_alg}]
+subroutine errors_kernel(dim,K_domain,Kd_cols,&
+       K_boundary,Kb_cols,Kb_rows,&
+       err_max,err_b_max,errd2_max,errd2_b_max)
+  use parametros, only: Long, pi, k1, k2
+  implicit none
+  real(Long), intent(in), dimension(:) :: K_domain
+  real(Long), intent(in), dimension(:,:) :: K_boundary
+  integer, intent(in) :: dim, Kd_cols, Kb_cols, Kb_rows
+  real(Long), intent(out) :: err_max, err_b_max
+  real(Long), intent(out) :: errd2_max, errd2_b_max
+  real(Long), dimension(Kd_cols) :: x_tmp, f_tmp, df_tmp
+  real(Long) :: err_i, errd2_i 
+  real(Long) :: fun_i, dfun_i, d2fun_i
+  integer :: i, j, k
+
+  err_max = -1; err_b_max = -1
+  errd2_max = -1; errd2_b_max = -1
+
+  x_tmp(1:Kb_cols) = (/ (2*pi*(i-1)/(dim-1)-pi, ! 
+                          i=1,Kb_cols) /)
+  f_tmp = exp(sin(x_tmp)) + 0.5*cos(k1*x_tmp) &
+          - 0.8*sin(k2*x_tmp)
+
+  ! left boundary
+  do i=1,Kb_rows
+     ! first derivative
+     dfun_i = dot_product(K_boundary(i,:), &
+                          f_tmp(1:Kb_cols))
+     df_tmp(i) = dfun_i;
+     !postprocess
+     err_i = abs(dfun(1.0_Long*i)-dfun_i)
+     if ( err_b_max < err_i ) err_b_max=err_i
+  end do
+
+  ! domain
+  do i=Kb_rows+1,dim-Kb_rows
+     ! first derivative
+     if (i>Kb_rows+1) &
+        call push_back(f_tmp, &
+                       fun(1.0_Long*(i+Kb_rows)), &
+                       Kd_cols)
+     dfun_i = dot_product(K_domain,f_tmp)
+     ! second derivative
+     if (i<Kd_cols) then
+        df_tmp(i) = dfun_i;
+     elseif (i==Kd_cols) then
+        df_tmp(i) = dfun_i;
+        do j=1,Kb_rows ! boundary
+           d2fun_i = dot_product(K_boundary(j,:),df_tmp)
+           errd2_i = abs(d2fun(1.0_Long*j)-d2fun_i)
+           if ( errd2_b_max < errd2_i ) errd2_b_max=errd2_i
+        end do
+        d2fun_i = dot_product(K_domain,df_tmp)
+        errd2_i = abs(d2fun(1.0_Long*(i-Kb_rows))-d2fun_i)
+        if ( errd2_b_max < errd2_i ) errd2_b_max=errd2_i
+     else ! domain
+        call push_back(df_tmp,dfun_i,Kb_cols)
+        d2fun_i = dot_product(K_domain,df_tmp)
+        errd2_i = abs(d2fun(1.0_Long*(i-Kb_rows))-d2fun_i)
+        if ( errd2_max < errd2_i ) errd2_max=errd2_i
+     end if
+     ! postprocess
+     err_i = abs(dfun(1.0_Long*i)-dfun_i)
+     if ( err_max < err_i ) err_max=err_i
+  end do
+
+  ! right boundary
+  do i=dim-Kb_rows+1,dim
+     ! first derivative
+     dfun_i = dot_product(-K_boundary(dim-i+1,:), &
+                           f_tmp(Kb_cols:1:-1))
+     ! second derivative
+     call push_back(df_tmp,dfun_i,Kb_cols)
+     d2fun_i = dot_product(K_domain,df_tmp)
+     errd2_i = abs(d2fun(1.0_Long*(i-Kb_rows))-d2fun_i)
+     if ( errd2_max < errd2_i ) errd2_max=errd2_i
+     ! postprocess
+     err_i = abs(dfun(1.0_Long*i)-dfun_i)
+     if ( err_b_max < err_i ) err_b_max=err_i
+  end do
+  ! second derivative
+  do j=1,Kb_rows
+     d2fun_i = dot_product( & 
+                    -K_boundary(Kb_rows-j+1,Kb_cols:1:-1), &
+                    df_tmp)
+     errd2_i = abs(d2fun(1.0_Long*(dim-Kb_rows+j))-d2fun_i)
+     if ( errd2_b_max < errd2_i ) errd2_b_max=errd2_i
+  end do
+    
+end subroutine errors_kernel
+\end{lstlisting}
+\end{multicols}
 
 \end{document}
