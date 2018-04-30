@@ -12,6 +12,7 @@
 \lstset{language=[90]Fortran,
   numbers=left,
   numberstyle=\tiny,%frame=double,framexleftmargin=15pt,
+  xleftmargin=2em,
   basicstyle=\scriptsize\ttfamily,
   keywordstyle=\color{blue},
   keywordstyle=[2]{\color{red!70!black}},
@@ -377,7 +378,7 @@ Por ultimo la impementación de este caso, lleva a los siguientes pasos:
   f^{'}_i\,&=\,K_r\cdot f_{\Omega_i}\label{eq:buffdiff}\\
   f^{''}_i\,&=\,\sum_{k,j\in\Omega_{ij}}D_{ik}D_{kj} f_j\label{eq:optimDiff}
 \end{align}
-en donde $f_{\Omega_i}$ depende de los indices $\Omega_i$ del kernel $K_r\in\{K_b, K_d\}$, dependiendo de la ubicación del nodo sera $K_b$ para el esquma cercano al contorno o $K_d$ para nodos internos del dominio.
+en donde $f_{\Omega_i}$ depende de los indices $\Omega_i$ del kernel $K_r\in\{K_b, K_d\}$, dependiendo de la ubicación del nodo sera $K_b$ para el esquma cercano al contorno o $K_d$ para nodos internos del dominio, ver detalles de la implementación en los Anexos de este documento, Sección.\ref{sec:opt_alg}.
 
 % % \begin{figure}[!htb]
 % %   \includegraphics[scale=0.40]{02_001SolucionTeorica.png}
@@ -398,9 +399,217 @@ en donde $f_{\Omega_i}$ depende de los indices $\Omega_i$ del kernel $K_r\in\{K_
 
 \section{Ecuación de difusión-convección 1D}
 \label{sec:dif-conv}
+A continuación se analiza la ecuación de difusión-convección en estado estable para el caso unidimensional:
+\begin{equation}
+  \frac{\partial\,\rho u \phi}{\partial x}\,=\,\frac{\partial}{\partial x}\,\left(\Gamma\frac{\partial\,\phi}{\partial x}\right)
+  \label{eq:dif-conv}
+\end{equation}
+sujeto a las condiciones de frontera,
+\begin{align}
+  \phi(x=0)\,&=\,\phi_o\\
+  \phi(x=L)\,&=\,\phi_L
+\end{align}
+en donde $L=1.0$, $\rho=1.0$, $u=1.0$, $\Gamma=1/60$, $\phi_o=0.0$ , $\phi_L=1.0$. 
+
+\subsection{Solución teórica adimensional}
+\label{sec:solteo}
+La ec.(\ref{eq:dif-conv}), tiene solución analítica y de forma adimensional es posible caracterizarla con un solo parámetro, llamado e el \emph{numero de Pecklet} (ver Figura.\ref{fig:solteo}). Definido de forma global $\mathbf{Pe}\,=\,\rho uL/\Gamma$ y de forma local mediante $\mathbf{Pe}_\Delta\,=\,\rho u\Delta x/\Gamma$. Utilizando el número $\mathbf{Pe}$, se obtiene
+\begin{equation}
+  \phi(x)\,=\,\phi_o+\frac{e^{x\mathbf{Pe}/L}-1}{e^{\mathbf{Pe}}-1}(\phi_L-\phi_0)
+  \label{eq:solteo}
+\end{equation}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{008SolucionTeorica.png}\\
+  \label{fig:solteo}
+  \caption{Solución analítica según el único parámetro adimensional $\mathbf{Pe}$}
+\end{figure}
+
+\subsection{Esquemas de prueba: ventajas y desventajas}
+\label{sec:esquemas}
+Los esquemas de diferencias finitas analizados en este apartado del documento son tres: \emph{esquemas de diferencias centrados} (CDS), \emph{esquemas up-wind} (UDS), CDS no-uniformes. En donde uniforme hace referencia al la uniformidad del tamaño de la separación de los nodos de la malla.
+
+\subsubsection{Centrados Uniformes}
+\label{sec:esq_centr}
+Para solucionar la ec.(\ref{eq:dif-conv}), utilizando CDS, el estencil o kernel de convolución de la malla es:
+\begin{equation}
+  K_{cds}\,=\,[\,-\frac{\Gamma}{\Delta^2}-\frac{\rho u}{2\Delta},\quad 2\frac{\Gamma}{\Delta^2},\quad -\frac{\Gamma}{\Delta^2}+\frac{\rho u}{2\Delta}\,]
+  \label{eq:Kcds}
+\end{equation}
+este tipo de esquem presenta oscilaciones alrededor de la solución analítica, que se reducen con la reducción tamaño de la malla. Este fenómeno de osciones se conose como \emph{oscilaciones artificiales}
+
+\subsubsection{\emph{Up-wind} Uniformes}
+\label{sec:esq_upwind}
+Los esquemas up-wind, dependen de la dirección $u$ de la ecuación ec.(\ref{eq:dif-conv}), el estencil o kernel de convolución de la malla es:
+\begin{align}
+  K_{uds}\,=\,[&\quad -\frac{\Gamma}{\Delta^2}-\frac{\max(\rho u,0)}{\Delta},\notag\\
+  &\quad +2\frac{\Gamma}{\Delta^2}-\frac{(\min(\rho u,0)-\max(\rho u,0))}{\Delta},\label{eq:Kuds}\\
+  &\quad -\frac{\Gamma}{\Delta^2}+\frac{\min(\rho u,0)}{\Delta}\,]\notag
+\end{align}
+a diferenicia del CDS, este esquema up-wind tiene un poco más de complejidad para su implementación. Los resultados de este esquema generalmente producen unos coeficientes de difusión ficticios, este fenómeno númerico se conoce como \emph{difusividad artificial}, como se verá más adelante. Además como ventaja del esquema Up-wind, no existe oscilaciones artificiales.
+
+\subsubsection{CDS no-uniformes}
+\label{sec:cds-non-u}
+Este esquema permite colocar más nodos, en lugares donde los cambios de los gradientes de la variable a resolver son elevados y reducirlos donde los gradientes son pequeños. La malla se puede generar de forma manual o utilzando una progresión geométrica.
+\begin{align}
+  K_{cds_{nu}}\,=\,2\Gamma[&\quad -\frac{1.0}{((x_{i+1}-x_{i-1})(x_i-x_{i-1}))}, \notag\\
+         &\quad +\frac{1.0}{((x_{i+1}-x_{i-1})(x_i-x_{i-1}))} \notag\\
+         &\qquad+ \frac{1.0}{((x_{i+1}-x_{i-1})(x_{i+1}-x_i))}, \label{eq:Knon-cds}\\
+         &\quad -\frac{1.0}{((x_{i+1}-x_{i-1})(x_{i+1}-x_i))}\,] \notag\\
+  +\,[&-\frac{\rho u}{(x_{i+1}-x_{i-1})}, 0.0, +\frac{\rho u}{(x_{i+1}-x_{i-1})}\,]\notag
+  %K_stencil_CDS_fun = K_stencil_CDS_fun + (/ -rho*u/(x(i+1)-x(i-1)), 0.0_Long, +rho*u/(x(i+1)-x(i-1)) /)
+\end{align}
+es posible un esquema UDS no-uniforme, cambiando el vector añadido de la ec.(\ref{eq:Knon-cds}), este experimento se hizo en el código de este trabajo.
+
+\subsection{Implementación}
+\label{sec:imp_sol_dif_conv}
+
+En el Listing.\ref{lst:impl_dif_conv}, se presenta una implementación modular que soluciona la ec.(\ref{eq:dif-conv}). Se dice modular por que este código me permite variar el tipo de kernel y a su vez el tipo de malla, generando la solución de los esquemas: CDS, UDS, non-CDS, non-UDS. La modularidad se logra al pasar como argumento una funcion de kernel \verb.K_fun(i,x,Gamma,rho,u)., que se declara mediante la interfaz de el código Listing.\ref{lst:impl_dif_conv}, líneas (15-25)
+
+La solución consiste en obtener un sistema de la forma $\mathbf{D}\cdot\mathbf{\phi}\,=\,\mathbf{b}$, en donde la matriz $\mathbf{D}$ presenta la ventaja de ser tridiagonal. En el detalle la matriz se define como tres vectores (ver Listing.\ref{lst:impl_dif_conv}, líneas (9-10)), que conforman las tridiagonales. Para la inversion del sistema se utiliza el algoritmo de las librerias de LAPACK, DGTSV para precision \verb.double. (ver Listing.\ref{lst:impl_dif_conv}, líneas (52-53)). 
+
+El manejo de las condiciones de Dirichlet, presentes en el problema se trabajan según Listing.\ref{lst:impl_dif_conv} en las líneas (27-41). Las del dominio interno Listing.\ref{lst:impl_dif_conv} en las líneas (43-49). El manejo de condiciones de frontera y de dominio interno ensamblan la matrix $\mathbf{D}$.
+
+\begin{lstlisting}[caption={Algoritmo solución Difusión-Convección estacionario},label={lst:impl_dif_conv}]
+  subroutine conv_difu_1D_non_uniform(x,phi,dim,&
+                     K_fun,phi0,phiL,rho,u,Gamma)
+    use parametros, only: Long        
+    implicit none
+    integer, intent(in) :: dim
+    real(Long), dimension(dim), intent(in) :: x
+    real(Long), dimension(dim), intent(out) :: phi
+    real(Long), dimension(3):: K_stencil
+    real(Long), dimension(dim-2) :: D
+    real(Long), dimension(dim-3) :: DL, DU
+    real(Long), intent(in) :: rho, u, Gamma
+    real(Long) :: phi0, phiL
+    integer :: i, info
+
+    ! Declaracion funcion externa
+    interface K_fcns
+       function K_fun(i,x,Gamma,rho,u)
+         use parametros
+         implicit none
+         integer :: i
+         real(Long), dimension(:) :: x
+         real(Long) :: Gamma, rho, u
+         real(Long), dimension(3) :: K_fun
+       end function K_fun
+    end interface K_fcns
+
+    ! boundaries
+    ! x=0
+    i = 2;
+    K_stencil = K_fun(i,x,Gamma,rho,u)
+    phi(1) = phi0
+    phi(2) = -K_stencil(1)*phi0
+    D(i-1) = K_stencil(2)
+    DU(i-1) = K_stencil(3)
+    ! x=L
+    i = dim-1
+    K_stencil = K_fun(i,x,Gamma,rho,u)
+    DL(i-2) = K_stencil(1)
+    D(i-1) = K_stencil(2)
+    phi(dim-1) = -K_stencil(3)*phiL
+    phi(dim) = phiL
+    
+    ! domain
+    do i=3,dim-2
+       K_stencil = K_fun(i,x,Gamma,rho,u)
+       DL(i-2) = K_stencil(1)
+       D(i-1) = K_stencil(2)
+       DU(i-1) = K_stencil(3)        
+    end do
+    
+    !    dgtsv(N,NRHS,DL,D,DU,b,LDB,info)
+    call dgtsv(dim-2, 1, DL, D, DU, &
+               phi(2:dim-1), dim-2, info)
+
+  end subroutine conv_difu_1D_non_uniform
+\end{lstlisting}
+
+\subsection{Resultados}
+\label{sec:res_sol_con_dif}
+
+Efectos en malla uniforme con CDS y UDS, se pueden ver en la Figura.\ref{fig:sch_grid}, en donde se puede ver el efecto de oscilación artificial con los CDS y difusividad artifical en el caso de los UDS. En ambos casos a medida que se reduce el tamaño de la malla se mejora la aproximación de la solución.
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{009Solu_Sch_Grid.png}\\
+  \label{fig:sch_grid}
+  \caption{Efectos en malla uniforme: con CDS, UDS y tamaño de malla}
+\end{figure}
+
+Efectos en malla no uniforme con CDS y UDS, dependen de la discretización de la malla. Nuevamente se puede observar en la Figura.\ref{fig:sch_n-ugrid}, que existe los fenomenos de oscilación y difusividad artificial asociados nuevamente a CDS y UDS, respectivamente. Sin embargo la precision de la malla no uniforme, no depende únicamente del número de puntos de la malla sino que depende de la ubicación de los puntos.
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{010Solu_Sch_non-uGrid.png}\\
+  \label{fig:sch_n-ugrid}
+  \caption{Efectos en malla no uniforme: con CDS, UDS y tamaño de malla}
+\end{figure}
+
+En el siguiente ejemplo (Figura.\ref{fig:sch_n-ugrid-good}), se plantea una malla de solo 11 nodos que mejora, las anteiores mallas de 11 nodos, solo con el hecho de colocar los puntos de una mejor distribución. Aún así se puede ver los mismos efectos artificiales propios de cada esquema.
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{011Solu_Sch_non-uGrid-Good.png}\\
+  \label{fig:sch_n-ugrid-good}
+  \caption{Buena malla no-uniforme}
+\end{figure}
 
 \section{Ecuación de difusión-convección transitoria 1D}
 \label{sec:dif-conv-trans}
+A continuación se analiza la ecuación de difusión-convección en estado estable para el caso unidimensional:
+\begin{equation}
+  \frac{\partial\,\rho\phi}{\partial t}\,+\,\frac{\partial\,\rho u \phi}{\partial x}\,=\,\frac{\partial}{\partial x}\,\left(\Gamma\frac{\partial\,\phi}{\partial x}\right)
+  \label{eq:dif-conv-trans}
+\end{equation}
+sujeto a las condiciones de frontera,
+\begin{align}
+  \phi(x=0)\,&=\,\phi_o\\
+  \phi(x=L)\,&=\,\phi_L
+\end{align}
+en donde $L=1.0$, $\rho=1.0$, $u=1.0$, $\Gamma=1/60$, $\phi_o=0.0$ , $\phi_L=1.0$. La condición incial para el caso transitorio satisface:
+\begin{equation}
+  \phi(x,0)\,=\,\phi_o\cos(\frac{\pi}{2}x)+\phi_L\sin(\frac{\pi}{2}x)
+  \label{eq:dif-conv-trans-ci}
+\end{equation}
+
+\subsection{Solución Euler hacia adelante con CDS y non-CDS}
+\label{sec:sol_ucds_noncds}
+
+A continuación se muestra la solución espacio-temporal para dos mallas de 11 nodos, una uniforme y la otra no uniforme. En este caso se observa que las diferencias no uniformes producen difusividad ficticia.
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{012Solu_Trans_FE_Grid11pts.png}
+  \caption{Solución temporal usando CDS $x=0.1$ y Forward Euler}
+  \label{fig:trans_sol_cds_dx01}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{013Solu_Trans_FE_nonUGrid11pts.png}
+  \caption{Solución temporal usando CDS $re=0.7$, $x=0.31$ y Forward Euler}
+  \label{fig:trans_sol_non-cds_dx01}
+\end{figure}
+
+\subsection{Solución Runge-Kutta 4 con CDS}
+\label{sec:sol_ucds_rk4_noncds}
+
+En este caso se tomo una solución con una malla de 51 elementos durante los primeros 1.2 segundos de simulación
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{014Solu_Trans_RK4_Grid11pts.png}
+  \caption{Solución RK4, temporal usando CDS $dx=0.01$ y Forward Euler}
+  \label{fig:trans_sol_rk4-cds_dx01}
+\end{figure}
+
+Finalmente la evolución temporal de tres puntos en el dominio: $x=0.5$, $x=0.7$ y $x=0.9$. Para cada uno de los metodos de Euler.
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.38]{015Solu_Trans_pts_t.png}
+  \caption{Solución temporal usando CDS $dx=0.1$ y Forward Euler}
+  \label{fig:trans_sol_pts_time_evol}
+\end{figure}
 
 %\section{Conclusiones}
 %\label{sec:conclusiones}
@@ -410,9 +619,12 @@ en donde $f_{\Omega_i}$ depende de los indices $\Omega_i$ del kernel $K_r\in\{K_
 
 \end{multicols}
 
+\newpage
 \section{Anexos}
 \label{sec:anexos}
 
+\subsection{Calculos para la deducción de los esquemas de diferncias finitas}
+\begin{multicols}{2}
 Comenzando con las diferencias finitas de primer orden y la serie de Taylor que aproxima la función $f(x)$ al rededor del punto $x_i$, se tiene:
 
 \begin{equation}
@@ -680,6 +892,7 @@ tales que
 %                         &\,=\,0 \notag 
   \end{align}
 }
+\end{multicols}
 
 \subsubsection{Algoritmo de cálculo de error optimizado en espacio}
 \label{sec:opt_alg}
@@ -780,5 +993,159 @@ subroutine errors_kernel(dim,K_domain,Kd_cols,&
 end subroutine errors_kernel
 \end{lstlisting}
 \end{multicols}
+
+\subsubsection{Algoritmo esquemas temporales}
+\label{sec:dif_conv_trans_alg}
+
+Euler hacia adelante, Runge-Kutta con CDS y non-uniform CDS:
+\begin{multicols}{2}
+\begin{lstlisting}[caption={Algoritmo Forward-Euler, Runge-Kutta},label={lst:trans_alg}]
+program difusion_conveccion_trans
+  use diferencias_finitas
+  implicit none
+  integer, parameter :: dim = 51, num_plts = 11
+  real*8, parameter :: pi = acos(-1.0D0)
+  real*8, dimension(dim) :: x
+  real*8, dimension(dim) :: phi_exact, phi_tmp, &
+                    phi_CDS, phi_non_CDS
+  real*8, dimension(dim) :: K1, K2, K3, K4
+  real*8, dimension(dim,num_plts) :: data
+  real*8, dimension(dim-2,3) :: D
+  real*8 :: Gamma = 1.0D0/40.0D0, L = 1.0D0, &
+                    rho = 1.0D0, u = 1.0D0
+  real*8 :: phi0 = 0.0D0, phiL = 1.0D0
+  real*8 :: dx, dt = 0.001, t = 0.0D0, tmax = 1.2D0
+  real*8 :: re = 0.7, dx0 = 0.31
+  real*8 :: Pe
+  real*8 :: alpha, beta
+  integer :: i, j, k, dt_plot = tmax/dt/(num_plt-1)
+  integer :: info
+
+  Pe = rho*u*L/Gamma
+  dx = L/(dim-1)
+
+  ! mesh and exact phi info
+  x = (/ (real(i)/(dim-1), i=0,dim-1) /)
+
+  phi_exact = phi0 &
+          + (exp(Pe*x/L)-1)/(exp(Pe)-1)*(phiL-phi0)
+
+  phi_CDS = phi0*cos(pi/2*x)+phiL*sin(pi/2*x)
+
+  ! 1. CDS - Forward Euler
+  alpha = Gamma/dx**2; beta = rho*u/2/dx;
+  j = dt_plot; k = 1;
+  do
+     phi_tmp = phi_CDS
+     if (j == dt_plot) then
+        j = 0
+        data(:,k) = phi_CDS
+        k = k+1
+     end if
+     j = j+1
+     phi_CDS(2:dim-1) = phi_tmp(2:dim-1) &
+                  +dt*((alpha+beta)*phi_tmp(1:dim-2) &
+                  -2*alpha*phi_tmp(2:dim-1) &
+                  +(alpha-beta)*phi_tmp(3:dim))
+     if (t>=tmax) exit
+     t = t+dt
+  end do
+
+  ! 2. CDS - Runge-Kutta
+  alpha = Gamma/dx**2; beta = rho*u/2/dx;
+  j = dt_plot; k = 1;
+  do
+     phi_tmp = phi_CDS ! *** optimizar
+     if (j == dt_plot) then
+        j = 0
+        data(:,k) = phi_CDS
+        k = k+1
+     end if
+     j = j+1
+     ! phi_tmp(i)
+     do i = 2,dim-1
+        K1(i) = dt*( (alpha+beta)*phi_tmp(i-1) &
+             - 2*alpha*phi_tmp(i) &
+             + (alpha-beta)*phi_tmp(i+1) ) 
+     end do
+     do i = 2,dim-1
+        K2(i) = dt*( (alpha+beta)*( phi_tmp(i-1) &
+                      +0.5*K1(i-1) ) &
+             - 2*alpha*( phi_tmp(i)+0.5*K1(i) ) &
+             + (alpha-beta)*( phi_tmp(i+1) &
+                              +0.5*K1(i+1) ) ) 
+     end do
+     do i = 2,dim-1
+        K3(i) = dt*( (alpha+beta)*( phi_tmp(i-1) &
+                                    +0.5*K2(i-1) ) &
+             - 2*alpha*( phi_tmp(i)+0.5*K2(i) ) &
+             + (alpha-beta)*( phi_tmp(i+1)+0.5*K2(i+1) ) ) 
+     end do
+     do i = 2,dim-1
+        K4(i) = dt*( (alpha+beta)*( phi_tmp(i-1) &
+                                    +K3(i-1) ) &
+             - 2*alpha*( phi_tmp(i)+K3(i) ) &
+             + (alpha-beta)*( phi_tmp(i+1)+K3(i+1) ) ) 
+     end do
+     phi_CDS = phi_tmp + (1./6.)*(K1 + 2.*K2 + 2.*K3 + K4)
+     if (t>=tmax) exit
+     t = t+dt
+  end do
+
+  ! 3. non-CDS - Forward Euler
+  ! mesh and exact phi info
+  x(1) = 0.0; x(2) = dx0
+  do i=3,dim
+     x(i) = (x(i-1)-x(i-2))*re+x(i-1)
+  end do
+  x(dim) = 1.0D0
+  !
+  phi_exact = phi0 + (exp(Pe*x/L)-1)/(exp(Pe)-1)*(phiL-phi0)
+
+  phi_non_CDS = phi0*cos(pi/2*x)+phiL*sin(pi/2*x)
+
+  do i = 2,dim-1
+     D(i-1,:) = 2*Gamma*(/ -1.0/((x(i+1)&
+                             -x(i-1))*(x(i)&
+                             -x(i-1))), &
+          +1.0/((x(i+1)-x(i-1))*(x(i)-x(i-1))) &
+            + 1.0/((x(i+1)-x(i-1))*(x(i+1)-x(i))), &
+          -1.0/((x(i+1)-x(i-1))*(x(i+1)-x(i))) /)
+     D(i-1,:) = D(i-1,:) &
+               + (/ -rho*u/(x(i+1)-x(i-1)), &
+                    0.0D0, &
+                    +rho*u/(x(i+1)-x(i-1)) /)
+  end do
+  alpha = Gamma/dx**2; beta = rho*u/2/dx;
+  j = dt_plot; k = 1;
+  do
+     phi_tmp = phi_non_CDS
+     if (j == dt_plot) then
+        j = 0
+        data(:,k) = phi_CDS
+        k = k+1
+     end if
+     j = j+1
+     do i = 2,dim-1
+        phi_non_CDS(i) = phi_tmp(i) &
+             + dt*( D(i-1,1)*phi_tmp(i-1) &
+             - D(i-1,2)*phi_tmp(i) &
+             + D(i-1,3)*phi_tmp(i+1) ) 
+     end do
+     if (t>=tmax) exit
+     t = t+dt
+  end do
+
+end program difusion_conveccion_trans
+\end{lstlisting}
+\end{multicols}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[scale=0.5]{03_001Temporal.png}
+  \includegraphics[scale=0.5]{03_002Temporal.png}\\
+  \label{fig:tmpfig}
+  \caption{Funcion de prueba para aproximar las primeras dos derivadas utilizando esquemas de diferencias finitas: (arriba) $f(x;\kappa_1,\kappa_2,\Delta_x)$, (centro) $\frac{df}{dx}$, (abajo) $\frac{d^2f}{dx^2}$}
+\end{figure}
 
 \end{document}
