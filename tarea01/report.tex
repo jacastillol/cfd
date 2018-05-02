@@ -65,7 +65,7 @@ y la segunda derivada es:
 En la figura Fig.\ref{fig:funx}, se puede apreciar como la función $f(x)$, presenta altos valores en la primera y la segunda derivada. Esta característica será analizada más adelante como una influencia importante en el error del estencil.
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{001Funcion.png}\\
+  \includegraphics[width=9.0cm]{images/001Funcion.pdf}\\
   \label{fig:funx}
   \caption{Funcion de prueba para aproximar las primeras dos derivadas utilizando esquemas de diferencias finitas: (arriba) $f(x;\kappa_1,\kappa_2,\Delta_x)$, (centro) $\frac{df}{dx}$, (abajo) $\frac{d^2f}{dx^2}$}
 \end{figure}
@@ -215,7 +215,7 @@ A continuación se muestra el orden de exactitud o el error de truncamiento ocas
 
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.40]{002Errores_df.png}
+  \includegraphics[width=8.0cm]{images/002Errores_df.pdf}
   \caption{Efecto del tamaño de la malla para $f(x)$ con $\Delta x_{max}=0.1$ y las derivadas de la función en $\frac{df}{dx}$ (Observar recuadro de Zoom).}
   \label{fig:errtrunc}
 \end{figure}
@@ -226,20 +226,21 @@ Como es de esperarse, al reutilizar el esquema para obtener la segunda derivada,
 
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.40]{003Errores_d2f.png}
+  \includegraphics[width=8.0cm]{images/003Errores_d2f.pdf}
   \caption{Efecto del tamaño de la malla $\Delta$ y las derivadas de la función en $\frac{d^2f}{dx^2}$ (Observar recuadro de Zoom).}
   \label{fig:err2trunc}
 \end{figure}
 
 Para comporbar que el efecto de la derivada es intrínseco de la función $f(x)$, la función de la ecuación ec.(\ref{eq:fun}), se ha modificado utilizando un $\Delta x_{max}\,=\,1.0$, con lo cual las derivadas se reducen considerablemente. Al aplicar los esquemas de diferenciación a dicha funcion, se puede observar que cualquier $\Delta<0.1$ (ver Figura.\ref{fig:errdxOthertrunc}), disminuye el error, lo cual no ocurre para la funcion $f(x)$ original (ver Figura.\ref{fig:errtrunc}).
+
+En la Figura.\ref{fig:errdxOthertrunc}, aparace un codo para la aproximación de sexto orden, en donde el error en lugar de disminuir comienza a crecer. Este efecto es debido al \emph{error de redondeo} que se debe a la precisión de la máquina y la forma como aproxima los números reales.
+
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.40]{004Errores_df_10dx.png}
+  \includegraphics[width=8.0cm]{images/004Errores_df_10dx.pdf}
   \caption{Efecto de las derivadas de la función $f(x)$ con $\Delta x_{max}=1.0$ en $\frac{df}{dx}$.}
   \label{fig:errdxOthertrunc}
 \end{figure}
-
-En la Figura.\ref{fig:errdxOthertrunc}, aparace un codo para la aproximación de sexto orden, en donde el error en lugar de disminuir comienza a crecer. Este efecto es debido al \emph{error de redondeo} que se debe a la precisión de la máquina y la forma como aproxima los números reales.
 
 \subsubsection{Error CDS 2, 4 y 6}
 \label{sec:errcds4}
@@ -309,21 +310,21 @@ Cada tipo de dato maneja un nivel de redondeo de acuerdo a la cantidad de memori
 
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{005Regions.png}
+  \includegraphics[width=9.0cm]{images/005Regions_dx1.pdf}
   \caption{Errores de truncamiento y redondeo de la función $f(x)$ con $\Delta x_{max}=1.0$ en $\frac{df}{dx}$ según el timpo de dato y el tamaño de malla.}
   \label{fig:regions_dx10}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{005Regions_dx01.png}
+  \includegraphics[width=9.0cm]{images/005Regions_dx01.pdf}
   \caption{Efecto de las derivadas de la función $f(x)$ con $\Delta x_{max}=0.1$ en $\frac{df}{dx}$.}
   \label{fig:regions_dx01}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{006Regions_df2_dx01.png}
+  \includegraphics[width=9.0cm]{images/006Regions_df2_dx01.pdf}
   \caption{Efecto de las derivadas de la función $f(x)$ con $\Delta x_{max}=0.1$ en $\frac{d^2f}{dx^2}$.}
   \label{fig:regions_d2fdx01}
 \end{figure}
@@ -351,7 +352,7 @@ La matriz densa se puede cambiar por dos submatrices que representan los kernels
 Por último en lugar de almacenar $f^{'}(x)$ en un arreglo total, se puede almacenar $f^{'}_{\Omega}$ solo en al vecindad del estencil para obtener la segunda derivada. De esta forma se puede calcular cualquier tamaño de malla, con la limitante de que ahora el problema es el tiempo de ejecución. En el caso de la malla de $5*10^8$, el tiempo de ejecución con un Core i7, en un solo núcleo fue de 380 minutos para una precisión de \verb.quad.. Como ventaja es posible correr el mismo programa siete veces uno por cada núcleo, dejando el tiempo total de computo en 4 horas y 20 minutos (es decir 380 minutos). El desempeño en tiempo se puede ver en la Figura.\ref{fig:performance}, en donde se puede calcular la complejidad exponencial en tiempo, como $\mathcal{O}(b\,n^a\,)$ y $N$ es el tamaño de la malla.
 
 \begin{figure}[H]
-  \includegraphics[scale=0.38]{007Performance.png}
+  \includegraphics[width=9.0cm]{images/007Performance.pdf}
   \caption{Efecto de las derivadas de la función $f(x)$ con $\Delta x_{max}=0.1$ en $\frac{df}{dx}$.}
   \label{fig:performance}
   \centering
@@ -380,23 +381,6 @@ Por ultimo la impementación de este caso, lleva a los siguientes pasos:
 \end{align}
 en donde $f_{\Omega_i}$ depende de los indices $\Omega_i$ del kernel $K_r\in\{K_b, K_d\}$, dependiendo de la ubicación del nodo sera $K_b$ para el esquma cercano al contorno o $K_d$ para nodos internos del dominio, ver detalles de la implementación en los Anexos de este documento, Sección.\ref{sec:opt_alg}.
 
-% % \begin{figure}[!htb]
-% %   \includegraphics[scale=0.40]{02_001SolucionTeorica.png}
-% %   \centering
-% % \end{figure}
-% % \begin{figure}[!htb]
-% %   \includegraphics[scale=0.40]{02_002EfectosMalla.png}
-% %   \centering
-% % \end{figure}
-% % \begin{figure}[!htb]
-% %   \includegraphics[scale=0.40]{03_001Temporal.png}
-% %   \centering
-% % \end{figure}
-% % \begin{figure}[!htb]
-% %   \includegraphics[scale=0.40]{03_002Temporal.png}
-% %   \centering
-% % \end{figure}
-
 \section{Ecuación de difusión-convección 1D}
 \label{sec:dif-conv}
 A continuación se analiza la ecuación de difusión-convección en estado estable para el caso unidimensional:
@@ -421,7 +405,7 @@ La ec.(\ref{eq:dif-conv}), tiene solución analítica y de forma adimensional es
 
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{008SolucionTeorica.png}\\
+  \includegraphics[width=9.0cm]{images/008SolucionTeorica.pdf}\\
   \label{fig:solteo}
   \caption{Solución analítica según el único parámetro adimensional $\mathbf{Pe}$}
 \end{figure}
@@ -535,7 +519,7 @@ El manejo de las condiciones de Dirichlet, presentes en el problema se trabajan 
 Efectos en malla uniforme con CDS y UDS, se pueden ver en la Figura.\ref{fig:sch_grid}, en donde se puede ver el efecto de oscilación artificial con los CDS y difusividad artifical en el caso de los UDS. En ambos casos a medida que se reduce el tamaño de la malla se mejora la aproximación de la solución.
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{009Solu_Sch_Grid.png}\\
+  \includegraphics[width=9cm]{images/009Solu_Sch_Grid.pdf}\\
   \label{fig:sch_grid}
   \caption{Efectos en malla uniforme: con CDS, UDS y tamaño de malla}
 \end{figure}
@@ -543,7 +527,7 @@ Efectos en malla uniforme con CDS y UDS, se pueden ver en la Figura.\ref{fig:sch
 Efectos en malla no uniforme con CDS y UDS, dependen de la discretización de la malla. Nuevamente se puede observar en la Figura.\ref{fig:sch_n-ugrid}, que existe los fenomenos de oscilación y difusividad artificial asociados nuevamente a CDS y UDS, respectivamente. Sin embargo la precision de la malla no uniforme, no depende únicamente del número de puntos de la malla sino que depende de la ubicación de los puntos.
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{010Solu_Sch_non-uGrid.png}\\
+  \includegraphics[width=9cm]{images/010Solu_Sch_non-uGrid.pdf}\\
   \label{fig:sch_n-ugrid}
   \caption{Efectos en malla no uniforme: con CDS, UDS y tamaño de malla}
 \end{figure}
@@ -551,7 +535,7 @@ Efectos en malla no uniforme con CDS y UDS, dependen de la discretización de la
 En el siguiente ejemplo (Figura.\ref{fig:sch_n-ugrid-good}), se plantea una malla de solo 11 nodos que mejora, las anteiores mallas de 11 nodos, solo con el hecho de colocar los puntos de una mejor distribución. Aún así se puede ver los mismos efectos artificiales propios de cada esquema.
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{011Solu_Sch_non-uGrid-Good.png}\\
+  \includegraphics[width=9.0cm]{images/011Solu_Sch_non-uGrid-Good.pdf}\\
   \label{fig:sch_n-ugrid-good}
   \caption{Buena malla no-uniforme}
 \end{figure}
@@ -580,14 +564,14 @@ en donde $L=1.0$, $\rho=1.0$, $u=1.0$, $\Gamma=1/60$, $\phi_o=0.0$ , $\phi_L=1.0
 A continuación se muestra la solución espacio-temporal para dos mallas de 11 nodos, una uniforme y la otra no uniforme. En este caso se observa que las diferencias no uniformes producen difusividad ficticia.
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{012Solu_Trans_FE_Grid11pts.png}
+  \includegraphics[width=9.0cm]{images/012Solu_Trans_FE_Grid11pts_11_1201.pdf}
   \caption{Solución temporal usando CDS $x=0.1$ y Forward Euler}
   \label{fig:trans_sol_cds_dx01}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{013Solu_Trans_FE_nonUGrid11pts.png}
+  \includegraphics[width=9.0cm]{images/013Solu_Trans_FE_nonUGrid11pts_11_1201.pdf}
   \caption{Solución temporal usando CDS $re=0.7$, $x=0.31$ y Forward Euler}
   \label{fig:trans_sol_non-cds_dx01}
 \end{figure}
@@ -595,10 +579,10 @@ A continuación se muestra la solución espacio-temporal para dos mallas de 11 n
 \subsection{Solución Runge-Kutta 4 con CDS}
 \label{sec:sol_ucds_rk4_noncds}
 
-En este caso se tomo una solución con una malla de 51 elementos durante los primeros 1.2 segundos de simulación
+En este caso se tomó una solución con una malla de 51 elementos durante los primeros 1.2 segundos de simulación
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{014Solu_Trans_RK4_Grid11pts.png}
+  \includegraphics[width=9.0cm]{images/014Solu_Trans_RK4_Grid_51_1201.pdf}
   \caption{Solución RK4, temporal usando CDS $dx=0.01$ y Forward Euler}
   \label{fig:trans_sol_rk4-cds_dx01}
 \end{figure}
@@ -606,7 +590,7 @@ En este caso se tomo una solución con una malla de 51 elementos durante los pri
 Finalmente la evolución temporal de tres puntos en el dominio: $x=0.5$, $x=0.7$ y $x=0.9$. Para cada uno de los metodos de Euler.
 \begin{figure}[H]
   \centering
-  \includegraphics[scale=0.38]{015Solu_Trans_pts_t.png}
+  \includegraphics[width=9.0cm]{images/015Solu_Trans_pts_t.pdf}
   \caption{Solución temporal usando CDS $dx=0.1$ y Forward Euler}
   \label{fig:trans_sol_pts_time_evol}
 \end{figure}
@@ -1139,13 +1123,5 @@ program difusion_conveccion_trans
 end program difusion_conveccion_trans
 \end{lstlisting}
 \end{multicols}
-
-\begin{figure}[!htb]
-  \centering
-  \includegraphics[scale=0.5]{03_001Temporal.png}
-  \includegraphics[scale=0.5]{03_002Temporal.png}\\
-  \label{fig:tmpfig}
-  \caption{Funcion de prueba para aproximar las primeras dos derivadas utilizando esquemas de diferencias finitas: (arriba) $f(x;\kappa_1,\kappa_2,\Delta_x)$, (centro) $\frac{df}{dx}$, (abajo) $\frac{d^2f}{dx^2}$}
-\end{figure}
 
 \end{document}
