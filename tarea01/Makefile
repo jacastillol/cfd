@@ -22,7 +22,7 @@ $(OBJ)/parametros.o $(OBJ)/parametros.mod: $(SRC)/parametros.f90
 $(OBJ)/utilidades.o $(OBJ)/utilidades.mod: $(SRC)/utilidades.f90
 	gfortran -J $(OBJ)/ -c $(SRC)/utilidades.f90 -o $(OBJ)/utilidades.o
 
-pdf/report.pdf: report.tex images/001Funcion.pdf images/002Errores_df.pdf images/003Errores_d2f.pdf images/004Errores_df_10dx.pdf images/005Regions_dx1.pdf images/005Regions_dx01.pdf images/006Regions_df2_dx01.pdf images/007Performance.pdf images/008SolucionTeorica.pdf images/009Solu_Sch_Grid.pdf images/010Solu_Sch_non-uGrid.pdf images/011Solu_Sch_non-uGrid-Good.pdf images/012Solu_Trans_FE_Grid11pts_11_1201.pdf images/013Solu_Trans_FE_nonUGrid11pts_11_1201.pdf images/014Solu_Trans_RK4_Grid_51_1201.pdf images/015Solu_Trans_pts_t.pdf images/Figura_EFvsRK4dt0_05.pdf images/Figura_nuEFvsnuRK4.pdf images/Figura_nuGrid.pdf images/Figura_nuEF_dt_re_x0.pdf
+pdf/report.pdf: report.tex images/001Funcion.pdf images/002Errores_df.pdf images/003Errores_d2f.pdf images/004Errores_df_10dx.pdf images/005Regions_dx1.pdf images/005Regions_dx01.pdf images/006Regions_df2_dx01.pdf images/007Performance.pdf images/008SolucionTeorica.pdf images/009Solu_Sch_Grid.pdf images/010Solu_Sch_non-uGrid.pdf images/011Solu_Sch_non-uGrid-Good.pdf images/012Solu_Trans_FE_Grid11pts_11_1201.pdf images/013Solu_Trans_FE_nonUGrid11pts_11_1201.pdf images/014Solu_Trans_RK4_Grid_51_1201.pdf images/015Solu_Trans_pts_t.pdf images/Figura_EFvsRK4dt0_05.pdf images/Figura_nuEFvsnuRK4.pdf images/Figura_nuGrid.pdf images/Figura_nuEF_dt_re_x0.pdf images/Figura_EF_dt_dx.pdf images/Figura_RK4_dt_dx.pdf images/Figura_EF_pt_on_t.pdf images/Figura_RK4_pt_on_t.pdf
 	pdflatex -output-directory pdf report.tex
 	pdflatex -output-directory pdf report.tex
 
@@ -105,6 +105,22 @@ images/Figura_nuGrid.pdf: scripts/postprocess_tmp03.gp
 images/Figura_nuEF_dt_re_x0.pdf: scripts/postprocess_tmp04.gp
 	gnuplot scripts/postprocess_tmp04.gp
 	pdflatex -output-directory images images/Figura_nuEF_dt_re_x0.tex
+
+images/Figura_EF_dt_dx.pdf: scripts/postprocess_tmp05.gp
+	gnuplot scripts/postprocess_tmp05.gp
+	pdflatex -output-directory images images/Figura_EF_dt_dx.tex
+
+images/Figura_RK4_dt_dx.pdf: scripts/postprocess_tmp06.gp
+	gnuplot scripts/postprocess_tmp06.gp
+	pdflatex -output-directory images images/Figura_RK4_dt_dx.tex
+
+images/Figura_EF_pt_on_t.pdf: scripts/postprocess_tmp07.gp
+	gnuplot scripts/postprocess_tmp07.gp
+	pdflatex -output-directory images images/Figura_EF_pt_on_t.tex
+
+images/Figura_RK4_pt_on_t.pdf: scripts/postprocess_tmp08.gp
+	gnuplot scripts/postprocess_tmp08.gp
+	pdflatex -output-directory images images/Figura_RK4_pt_on_t.tex
 
 dirs:
 	mkdir -p data
