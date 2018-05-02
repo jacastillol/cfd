@@ -99,4 +99,5 @@ dirs:
 	mkdir -p scripts
 
 clean:
-	rm -f *.o *.mod *.aux *.log
+	rm -f obj/*.o obj/*.mod pdf/*.aux pdf/*.log
+	rm -f images/*.tex images/*.aux images/*.log
