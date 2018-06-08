@@ -1,0 +1,57 @@
+set iso 100
+unset surf
+set view map
+#set pm3d at s hidden3d 1
+set pm3d at b
+filenameU = "data/solU_t"
+filenameV = "data/solV_t"
+set multiplot layout 2,2
+
+#splot for [n=0:5] filenameU.(n)."000.dat" matrix notitle
+#splot for [n=0:5] filenameV.(n)."000.dat" matrix notitle
+#plot "data/error.dat" u 1:3
+#pause -1
+
+flag_t = 1
+
+n=0
+splot filenameU.(n)."000.dat" matrix notitle
+splot filenameV.(n)."000.dat" matrix notitle
+plot "data/error.dat" u 1:3
+plot "data/error.dat" u 1:3
+pause flag_t
+
+n=1
+splot filenameU.(n)."000.dat" matrix notitle
+splot filenameV.(n)."000.dat" matrix notitle
+plot "data/error.dat" u 1:3
+plot "data/error.dat" u 1:3
+pause flag_t
+
+n=2
+splot filenameU.(n)."000.dat" matrix notitle
+splot filenameV.(n)."000.dat" matrix notitle
+plot "data/error.dat" u 1:3
+plot "data/error.dat" u 1:3
+pause flag_t
+
+n=3
+splot filenameU.(n)."000.dat" matrix notitle
+splot filenameV.(n)."000.dat" matrix notitle
+plot "data/error.dat" u 1:3
+plot "data/error.dat" u 1:3
+pause flag_t
+
+n=4
+splot filenameU.(n)."000.dat" matrix notitle
+splot filenameV.(n)."000.dat" matrix notitle
+plot "data/error.dat" u 1:3
+plot "data/error.dat" u 1:3
+pause flag_t
+
+n=5
+splot filenameU.(n)."000.dat" matrix notitle
+splot filenameV.(n)."000.dat" matrix notitle
+plot "data/error.dat" u 1:3
+plot "data/error.dat" u 1:3
+pause flag_t
